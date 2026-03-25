@@ -1,0 +1,24 @@
+# Arquivos compilados do Progress
+*.r
+
+# Arquivos de log e debug
+*.lg
+*.log
+procore
+protrace.*
+
+# Arquivos de Lock de banco de dados (se houver banco local na pasta)
+*.lk
+
+# Arquivos temporários do editor do Progress
+*.ped
+*.~*
+
+# Arquivos de configuração de ambiente local (opcional, dependendo do projeto)
+*.pf
+*.ini
+
+# Configurações do VS Code e OpenEdge
+.vscode/
+*.code-workspace
+.openedge-zext.json
