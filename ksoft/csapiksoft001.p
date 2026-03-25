@@ -12,7 +12,8 @@ USING com.totvs.framework.api.* .
 {cdp/cdapi300.i1}
 {cdp/cdapi244.i}
 
-PROCEDURE pi-cust-supl :
+PROCEDURE pi-cust-supl
+    :
     DEF INPUT  PARAM oInput  AS JsonObject NO-UNDO.
     DEF INPUT  PARAM p-tipo  AS INT        NO-UNDO.
     DEF OUTPUT PARAM oOutput AS JsonObject NO-UNDO.
@@ -37,6 +38,20 @@ PROCEDURE pi-cust-supl :
     IF NOT AVAIL pais THEN DO:
         oOutput = fnApiErro("Pais ISO3166-2 n∆o encontrado") .
         RETURN .
+    END.
+
+    /* Validar fornecedor existentes pelo CNPJ se esta ativo */ 
+    IF fnApiGetChar(oPayload, "cnpj") <> "" THEN DO:
+        FOR EACH emitente NO-LOCK
+            WHERE emitente.cgc = fnApiGetChar(oPayload, "cnpj")
+            AND   emitente.cod-emitente <> fnApiGetInt(oPayload, "codigo")
+            :
+            FIND FIRST dist-emitente NO-LOCK OF emitente NO-ERROR .
+            IF NOT AVAIL dist-emitente OR dist-emitente.idi-sit-fornec <> 4 /* Inativo */ THEN DO:
+                oOutput = fnApiErro("J† existe um fornecedor ativo com o mesmo CNPJ, desativar no Datasul antes de criar novamente.") .
+                RETURN .
+            END.
+        END.
     END.
     
     CREATE tt_emitente_integr_new.
@@ -109,17 +124,6 @@ PROCEDURE pi-cust-supl :
     CREATE tt_cta_emitente .
     EMPTY TEMP-TABLE tt_retorno_clien_fornec .
                 
-    /*Validaá‰es*/ 
-    /*
-    IF tt_emitente_integr_new.Cgc <> "" THEN DO:
-        FOR LAST emitente NO-LOCK
-            WHERE emitente.cgc = tt_emitente_integr_new.Cgc
-            :
-            ASSIGN tt_emitente_integr_new.Cod_emitente = emitente.cod-emitente .
-        END.
-    END.
-    */
-
     FIND FIRST emitente WHERE emitente.cod-emitente = tt_emitente_integr_new.Cod_emitente NO-LOCK NO-ERROR .
     IF AVAIL emitente THEN DO:
         ASSIGN tt_emitente_integr_new.Num_tip_operac = 1 . /*1 = Inclus∆o OU 2 = Eliminacao */ 

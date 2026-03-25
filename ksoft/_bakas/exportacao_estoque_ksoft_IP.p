@@ -24,7 +24,7 @@ PUT UNFORMATTED
     "Stock;Stock area;Storage place;TU;M2;M;Tare;Gross weight;Customer PN;Decor Number;"
     "Description 1;Width mm;Qt in PSC;Length mm;Width mm;Turned;Reservation;Locked;Grammage;Source com;"
     "Creation DT;FSC/PEFC;Bez FSC/PEFC;Target Customer;Net Price;Net Weight;Batch Number;Pallet PN;"
-    "Prod. Order;Num Paller;Pallet"
+    "Prod. Order;Num Paller;Pallet;Datasul Order;Datasul Pos;KSoft Order;KSoft Pos"
     SKIP .
 
 FOR EACH ITEM NO-LOCK
@@ -37,7 +37,6 @@ FOR EACH ITEM NO-LOCK
           ITEM.ge-codigo = 29
     BY ITEM.it-codigo
     :
-    IF ITEM.desc-item MATCHES "*ACERTO*" THEN NEXT .
     RUN pi-acompanhar IN h-acomp(ITEM.it-codigo) .
     /**/
     FIND FIRST cst_item_uni_estab NO-LOCK
@@ -49,6 +48,11 @@ FOR EACH ITEM NO-LOCK
         WHERE saldo-estoq.it-codigo = ITEM.it-codigo
         AND   saldo-estoq.qtidade-atu > 0
         :
+        IF ITEM.desc-item MATCHES "*ACERTO*" THEN DO:
+            MESSAGE ITEM.it-codigo VIEW-AS ALERT-BOX .
+            NEXT .
+        END.
+
         ASSIGN lLockCQ = FALSE .
         IF saldo-estoq.cod-depos = "CQ" OR
            saldo-estoq.cod-depos = "CQ1" OR
@@ -62,6 +66,7 @@ FOR EACH ITEM NO-LOCK
         RELEASE cst-prod .
         RELEASE item-cli .
         RELEASE emitente .
+        RELEASE cst_ped_item .
 
         ASSIGN cLoteOP = saldo-estoq.lote .
         ASSIGN cLoteOP = REPLACE(cLoteOP, ".", "") .
@@ -135,12 +140,19 @@ FOR EACH ITEM NO-LOCK
             FIND FIRST ord-prod NO-LOCK
                 WHERE ord-prod.nr-ord-produ = cst-prod.nr-ord-produ
                 .
-            FIND FIRST emitente NO-LOCK WHERE emitente.nome-abrev = ord-prod.nome-abrev .
-            FIND FIRST item-cli NO-LOCK
-                WHERE item-cli.it-codigo = ITEM.it-codigo
-                AND   item-cli.nome-abrev = emitente.nome-abrev
-                AND   item-cli.item-do-cli <> ""
-                NO-ERROR .
+            IF ord-prod.nome-abrev <> "" THEN DO:
+                FIND FIRST emitente NO-LOCK WHERE emitente.nome-abrev = ord-prod.nome-abrev .
+                FIND FIRST item-cli NO-LOCK
+                    WHERE item-cli.it-codigo = ITEM.it-codigo
+                    AND   item-cli.nome-abrev = emitente.nome-abrev
+                    AND   item-cli.item-do-cli <> ""
+                    NO-ERROR .
+                FIND FIRST cst_ped_item NO-LOCK
+                    WHERE cst_ped_item.nome-abrev = ord-prod.nome-abrev
+                    AND   cst_ped_item.nr-pedcli = ord-prod.nr-pedido
+                    AND   cst_ped_item.it-codigo = ord-prod.it-codigo
+                    NO-ERROR .
+            END.
         END.
         ELSE DO:
             FIND FIRST item-cli NO-LOCK
@@ -219,6 +231,10 @@ FOR EACH ITEM NO-LOCK
             ';' IF AVAIL cst-prod THEN STRING(cst-prod.nr-ord-produ) ELSE ""
             ';' IF AVAIL cst-prod THEN STRING(cst-prod.nr-pallet) ELSE ""
             ';' IF AVAIL cst-prod THEN STRING(cst-prod.embalagem) ELSE ""
+            ';' IF AVAIL cst_ped_item THEN cst_ped_item.nr-pedcli ELSE ""
+            ';' IF AVAIL cst_ped_item THEN STRING(cst_ped_item.nr-sequencia) ELSE ""
+            ';' IF AVAIL cst_ped_item THEN cst_ped_item.nr_ped_externo ELSE ""
+            ';' IF AVAIL cst_ped_item THEN cst_ped_item.seq_ped_externo ELSE ""
             SKIP .
     END.
 END.

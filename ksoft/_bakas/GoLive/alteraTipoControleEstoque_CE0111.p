@@ -1,6 +1,8 @@
 /*
 */
 
+DEF INPUT PARAM p-qtd-itens     AS INT NO-UNDO INIT 50 .
+
 {utp/ut-glob.i}
 
 {cdp/cdcfgdis.i}
@@ -76,10 +78,16 @@ PUT UNFORMATTED
     "ITEM;N Erro;Tipo;SubTipo;Descri‡Æo;Ajuda"
     SKIP .
 
+DEF VAR i-cont-itens AS INT NO-UNDO .
+
 FOR EACH ITEM NO-LOCK
     WHERE ITEM.tipo-con-est > 1
     :
-    RUN pi-acompanhar IN h-acomp("ITEM: " + ITEM.it-codigo) .
+    ASSIGN i-cont-itens = i-cont-itens + 1 .
+    RUN pi-acompanhar IN h-acomp
+        ("ITEM: " + ITEM.it-codigo + " - " + 
+         STRING(i-cont-itens) + "/" + STRING(p-qtd-itens)) 
+        .
 
     ASSIGN i-tipo-con-est-old = ITEM.tipo-con-est .
 
@@ -107,6 +115,10 @@ FOR EACH ITEM NO-LOCK
             END.
         END.
     END. 
+
+    IF i-cont-itens >= p-qtd-itens THEN DO:
+        LEAVE .
+    END.
 END.
 
 OUTPUT CLOSE .
@@ -114,6 +126,8 @@ OUTPUT CLOSE .
 IF VALID-HANDLE(h-acomp) THEN DO:
     RUN pi-finalizar IN h-acomp .
 END.
+
+MESSAGE "Execu‡Æo Finalizada" SKIP i-cont-itens VIEW-AS ALERT-BOX .
 
 
 

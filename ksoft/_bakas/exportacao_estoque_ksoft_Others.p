@@ -40,6 +40,7 @@ FOR EACH ITEM NO-LOCK
     ITEM.ge-codigo <> 15 AND
     ITEM.ge-codigo <> 16 AND
     //DP
+    ITEM.ge-codigo <> 22 AND
     ITEM.ge-codigo <> 66 AND
     ITEM.ge-codigo <> 69 AND
     ITEM.ge-codigo <> 81 AND

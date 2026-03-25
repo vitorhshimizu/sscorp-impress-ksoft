@@ -9,7 +9,8 @@ RUN utp/ut-acomp.p PERSISTENT SET h-acomp .
 RUN pi-inicializar IN h-acomp("Executando...") .
 
 FOR EACH ITEM NO-LOCK
-    WHERE ITEM.deposito-pad = "CQ"
+    WHERE ITEM.deposito-pad <> "DBD"
+    BY ITEM.it-codigo
     :
     RUN pi-acompanhar IN h-acomp(ITEM.it-codigo) .
     TRA1:
@@ -17,13 +18,14 @@ FOR EACH ITEM NO-LOCK
         :
         FIND CURRENT ITEM EXCLUSIVE-LOCK .
         ASSIGN
-            ITEM.deposito-pad = "ALM"
+            ITEM.deposito-pad = "DBD"
             .
     END. 
 END.
 
 FOR EACH item-uni-estab NO-LOCK
-    WHERE item-uni-estab.deposito-pad = "CQ"
+    WHERE item-uni-estab.deposito-pad <> "DBD"
+    BY item-uni-estab.it-codigo
     :
     RUN pi-acompanhar IN h-acomp(item-uni-estab.cod-estabel + " - " + 
                                  item-uni-estab.it-codigo) .
@@ -32,7 +34,7 @@ FOR EACH item-uni-estab NO-LOCK
         :
         FIND CURRENT item-uni-estab EXCLUSIVE-LOCK .
         ASSIGN
-            item-uni-estab.deposito-pad = "ALM"
+            item-uni-estab.deposito-pad = "DBD"
             .
     END. 
 END.

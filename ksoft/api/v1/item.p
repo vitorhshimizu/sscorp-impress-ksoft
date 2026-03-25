@@ -99,6 +99,8 @@ PROCEDURE pi-post:
 
     ASSIGN oIn = fnApiReadBody(oIn) .
 
+    oIn:WriteFile("C:\totvs\ksoft_log\POST_item\" + fnApiGetChar(oIn, "codigo") + ".json", YES, "UTF-8") .
+
     FIND FIRST classif-fisc NO-LOCK
         WHERE classif-fisc.class-fiscal = fnApiGetChar(oIn, "ncm")
         NO-ERROR .
@@ -140,7 +142,7 @@ PROCEDURE pi-post:
         tt-item.ind-tipo-movto          = IF NOT AVAIL ITEM THEN 1 /* Cria‡Æo */ ELSE 2 /* Altera‡Æo */ 
         tt-item.it-codigo               = fnApiGetChar(oIn, "codigo")
         tt-item.desc-item               = UPPER(fnApiGetChar(oIn, "desc_item"))        
-        tt-item.ge-codigo               = IF AVAIL ITEM THEN ITEM.ge-codigo ELSE 99         
+        tt-item.ge-codigo               = fnApiGetInt(oIn, "ge_codigo")        
         tt-item.fm-codigo               = fnApiGetChar(oIn, "fm_codigo")
         tt-item.fm-cod-com              = fnApiGetChar(oIn, "fm_cod_com")
         tt-item.un                      = fnApiGetChar(oIn, "un")

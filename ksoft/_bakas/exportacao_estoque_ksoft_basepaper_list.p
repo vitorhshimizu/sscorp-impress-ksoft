@@ -47,6 +47,18 @@ PUT UNFORMATTED
     "Store in Date;Matchcode Supplier;Net Price;Storage Period;Estab;Net Weight;Batch Number"
     SKIP .
 
+FOR EACH ITEM NO-LOCK
+    WHERE ITEM.ge-codigo = 1  OR
+          ITEM.ge-codigo = 2  OR
+          ITEM.ge-codigo = 12 OR
+          ITEM.ge-codigo = 13 OR
+          ITEM.ge-codigo = 14 OR
+          ITEM.ge-codigo = 15 OR
+          ITEM.ge-codigo = 16
+    BY ITEM.it-codigo
+    :
+    RUN pi-acompanhar IN h-acomp(ITEM.it-codigo) .
+/*
 FOR EACH tt-item NO-LOCK
     BY tt-item.it-codigo
     :
@@ -56,7 +68,7 @@ FOR EACH tt-item NO-LOCK
         MESSAGE "Item n∆o encontrado: " tt-item.it-codigo VIEW-AS ALERT-BOX .
         LEAVE .
     END.
-
+    */
     RUN pi-acompanhar IN h-acomp(ITEM.it-codigo) .
     /**/
     FIND FIRST cst_item_uni_estab NO-LOCK
@@ -99,12 +111,14 @@ FOR EACH tt-item NO-LOCK
             AND   movto-estoq.cod-emitente <> 717 /* IMPRESS 101 */
             AND   movto-estoq.cod-emitente <> 3910 /* IMPRESS 102 */
             NO-ERROR .
-        IF AVAIL movto-estoq THEN DO:
-            FIND FIRST emitente NO-LOCK WHERE emitente.cod-emitente = movto-estoq.cod-emitente .
-            FIND FIRST item-fornec NO-LOCK
-                WHERE item-fornec.it-codigo = ITEM.it-codigo
-                AND   item-fornec.cod-emitente = emitente.cod-emitente
-                NO-ERROR .
+        IF AVAIL movto-estoq AND movto-estoq.cod-emitente <> 0 THEN DO:
+            FIND FIRST emitente NO-LOCK WHERE emitente.cod-emitente = movto-estoq.cod-emitente NO-ERROR .
+            IF AVAIL emitente THEN DO:
+                FIND FIRST item-fornec NO-LOCK
+                    WHERE item-fornec.it-codigo = ITEM.it-codigo
+                    AND   item-fornec.cod-emitente = emitente.cod-emitente
+                    NO-ERROR .
+            END.
         END.
 
         /* Busca ultimo Preco Medio */
@@ -124,15 +138,17 @@ FOR EACH tt-item NO-LOCK
             NO-ERROR .
 
         /* Busca peso da embalagem do fornecedor campo dec-1 */
-        FIND FIRST item-fornec NO-LOCK
-            WHERE item-fornec.it-codigo = saldo-estoq.it-codigo
-            AND   item-fornec.cod-emitente = emitente.cod-emitente
-            NO-ERROR .
-        IF NOT AVAIL item-fornec THEN DO:
+        IF AVAIL emitente THEN DO:
             FIND FIRST item-fornec NO-LOCK
                 WHERE item-fornec.it-codigo = saldo-estoq.it-codigo
+                AND   item-fornec.cod-emitente = emitente.cod-emitente
                 NO-ERROR .
-            FIND FIRST emitente NO-LOCK WHERE emitente.cod-emitente = item-fornec.cod-emitente .
+            IF NOT AVAIL item-fornec THEN DO:
+                FIND FIRST item-fornec NO-LOCK
+                    WHERE item-fornec.it-codigo = saldo-estoq.it-codigo
+                    NO-ERROR .
+                FIND FIRST emitente NO-LOCK WHERE emitente.cod-emitente = item-fornec.cod-emitente .
+            END.
         END.
 
         /* Busca etiqueta da Six */

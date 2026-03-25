@@ -107,6 +107,7 @@ PROCEDURE pi-post:
     DEF VAR deTotPesoLiq    AS DECIMAL NO-UNDO .
     DEF VAR deTotPesoBru    AS DECIMAL NO-UNDO .
     DEF VAR deTotDesp       AS DECIMAL NO-UNDO .
+    DEF VAR deTotDespTodos  AS DECIMAL NO-UNDO .
 
     DEF BUFFER emitente-transp  FOR emitente .
     DEF BUFFER pais             FOR mgcad.pais .
@@ -124,6 +125,14 @@ PROCEDURE pi-post:
         NO-ERROR .
     IF NOT AVAIL emitente THEN DO:
         oOut = fnApiErro("Cliente/Fornecedor n∆o encontrado") .
+        RETURN .
+    END.
+
+    FIND FIRST natur-oper NO-LOCK
+        WHERE natur-oper.nat-operacao = fnApiGetChar(oHeader, "nat_operacao")
+        NO-ERROR .
+    IF NOT AVAIL natur-oper THEN DO:
+        oOut = fnApiErro("Natureza de Operaá∆o n∆o encontrado") .
         RETURN .
     END.
 
@@ -275,6 +284,14 @@ PROCEDURE pi-post:
             :
             ASSIGN oItem = oItensArray:GetJsonObject(iCont) .
 
+            FIND FIRST ITEM NO-LOCK
+                WHERE ITEM.it-codigo = fnApiGetChar(oItem, "it_codigo")
+                NO-ERROR .
+            IF NOT AVAIL ITEM THEN DO:
+                oOut = fnApiErro("Item n∆o encontrado, Pos:" + STRING(iCont) ) .
+                UNDO TRA1, LEAVE TRA1.
+            END.
+
             EMPTY TEMP-TABLE tt-item-doc-est .
             CREATE tt-item-doc-est . ASSIGN
                 tt-item-doc-est.serie-docto             = docum-est.serie-docto 
@@ -289,14 +306,17 @@ PROCEDURE pi-post:
                 tt-item-doc-est.preco-total             = fnApiGetDecimal(oItem, "preco_total")
                 tt-item-doc-est.qt-do-forn              = fnApiGetDecimal(oItem, "quantidade_for")
                 tt-item-doc-est.narrativa               = fnApiGetChar(oItem, "narrativa")
-                //tt-item-doc-est.ct-codigo               = fnApiGetChar(oItem, "ct_codigo")
-                tt-item-doc-est.ct-codigo               = "1140602"
+                tt-item-doc-est.ct-codigo               = fnApiGetChar(oItem, "ct_codigo")
                 tt-item-doc-est.sc-codigo               = fnApiGetChar(oItem, "sc_codigo")
                 tt-item-doc-est.peso-bruto-item         = fnApiGetDecimal(oItem, "peso_bruto")
                 tt-item-doc-est.peso-liquido            = fnApiGetDecimal(oItem, "peso_liquido")
                 tt-item-doc-est.peso-liquido-item       = fnApiGetDecimal(oItem, "peso_liquido")
                 tt-item-doc-est.baixa-ce                = NO
                 .
+            IF tt-item-doc-est.ct-codigo = "" THEN DO:
+                ASSIGN tt-item-doc-est.ct-codigo = ITEM.ct-codigo .
+            END.
+
             ASSIGN deTotPesoBru = deTotPesoBru + tt-item-doc-est.peso-bruto-item .
             ASSIGN deTotPesoLiq = deTotPesoLiq + tt-item-doc-est.peso-liquido .
 
@@ -320,15 +340,15 @@ PROCEDURE pi-post:
                 tt-item-doc-est.base-ipi                = fnApiGetDecimal(oItem, "base_ipi")
                 tt-item-doc-est.aliquota-ipi            = fnApiGetDecimal(oItem, "p_ipi")
                 tt-item-doc-est.valor-ipi               = fnApiGetDecimal(oItem, "vl_ipi")
-                tt-item-doc-est.cd-trib-icm             = 1
+                tt-item-doc-est.cd-trib-icm             = natur-oper.cd-trib-icm
                 tt-item-doc-est.base-icm                = fnApiGetDecimal(oItem, "base_icm")
                 tt-item-doc-est.aliquota-icm            = fnApiGetDecimal(oItem, "p_icm")
                 tt-item-doc-est.valor-icm               = fnApiGetDecimal(oItem, "vl_icm")
-                tt-item-doc-est.idi-tributac-pis        = 1
+                tt-item-doc-est.idi-tributac-pis        = 1 /* Tributado */
                 tt-item-doc-est.base-pis                = fnApiGetDecimal(oItem, "base_pis")
                 tt-item-doc-est.val-aliq-pis            = fnApiGetDecimal(oItem, "p_pis")
                 tt-item-doc-est.valor-pis               = fnApiGetDecimal(oItem, "vl_pis")
-                tt-item-doc-est.idi-tributac-cofins     = 1
+                tt-item-doc-est.idi-tributac-cofins     = 1 /* Tributado */
                 tt-item-doc-est.val-base-calc-cofins    = fnApiGetDecimal(oItem, "base_cofins")
                 tt-item-doc-est.val-aliq-cofins         = fnApiGetDecimal(oItem, "p_cofins")
                 tt-item-doc-est.val-cofins              = fnApiGetDecimal(oItem, "vl_cofins")
@@ -485,9 +505,10 @@ PROCEDURE pi-post:
                     dupli-apagar-cex.mo-codigo          = 0
                     dupli-apagar-cex.dt-trans           = docum-est.dt-trans
                     .
+                   
             END.
         END.
-
+        
         //Totaliza Nota
         RUN TransferTotalItensNota IN h-boin176 
             (INPUT docum-est.cod-emitente,
@@ -504,8 +525,8 @@ PROCEDURE pi-post:
             FOR FIRST dupli-apagar OF docum-est
                 :
                 ASSIGN
-                    OVERLAY(dupli-apagar.char-1, 01, 20) = STRING(fnApiGetDecimal(oHeader, "currencyCode"))
-                    OVERLAY(dupli-apagar.char-1, 21, 20) = STRING(fnApiGetDecimal(oHeader, "currencyValue"))
+                    OVERLAY(dupli-apagar.char-1, 01, 20)    = STRING(fnApiGetDecimal(oHeader, "currencyCode"))
+                    OVERLAY(dupli-apagar.char-1, 21, 20)    = STRING(fnApiGetDecimal(oHeader, "currencyValue"))
                     .
             END.
         END.
@@ -569,19 +590,27 @@ PROCEDURE pi-post:
                 .
         END.
 
-        FOR EACH dupli-apagar-cex
+        FOR EACH dupli-apagar-cex OF docum-est
             :
             /* Nao criar como CE - Solicitado pela Ana durante os testes */
             IF dupli-apagar-cex.cod-esp = "CE" THEN DO:
                 ASSIGN dupli-apagar-cex.cod-esp = "DP" .
             END.
             /* Fornecedores */
-            IF dupli-apagar-cex.cod-emitente = 4723 /* KUEHNE NAGEL */ THEN DO:
+            IF dupli-apagar-cex.cod-emitente-desp = 4723 /* KUEHNE NAGEL */ THEN DO:
                 ASSIGN dupli-apagar-cex.cod-esp = "II" .
             END.
-            ELSE IF dupli-apagar-cex.cod-emitente = 250036 /* RECEITA FEDERAL MINISTERIO DA FAZENDA */ THEN DO:
+            ELSE IF dupli-apagar-cex.cod-emitente-desp = 20001 /* RECEITA FEDERAL MINISTERIO DA FAZENDA */ THEN DO:
                 ASSIGN dupli-apagar-cex.cod-esp = "II" .
             END.
+            ASSIGN deTotDespTodos = deTotDespTodos + dupli-apagar-cex.vl-a-pagar .
+        END.
+        
+        FOR FIRST dupli-apagar OF docum-est
+            :
+            ASSIGN
+                dupli-apagar.vl-a-pagar  = dupli-apagar.vl-a-pagar - deTotDespTodos
+                .
         END.
 
         /**/
@@ -634,50 +663,36 @@ PROCEDURE pi-get-by-di:
     DEF INPUT  PARAM oIn    AS JsonObject NO-UNDO .
     DEF OUTPUT PARAM oOut   AS JsonObject NO-UNDO .
 
-    DEF BUFFER bf-docum-est FOR docum-est .
-
-    DEF VAR iCont   AS INT NO-UNDO .
+    DEF VAR oDocument   AS JsonObject NO-UNDO .
+    DEF VAR oArray      AS JsonArray NO-UNDO .
 
     IF fnApiReadParam(oIn, "di") = "" THEN DO:
         oOut = fnApiErro("DI deve ser informada") .
         RETURN "NOK" .
     END.
 
-    FIND LAST docum-est NO-LOCK
+    ASSIGN oArray = NEW JsonArray() .
+    FOR EACH docum-est NO-LOCK
         WHERE docum-est.declaracao-import = fnApiReadParam(oIn, "di")
         AND   docum-est.serie-docto = fnApiReadParam(oIn, "serie")
         AND   docum-est.cod-emitente = INTEGER(fnApiReadParam(oIn, "cod_cli_for"))
         AND   docum-est.nat-operacao = fnApiReadParam(oIn, "nat_operacao")
-        NO-ERROR .
-    IF NOT AVAIL docum-est THEN DO:
-        oOut = fnApiErro("Nenhum documento encontrado com a chave informada") .
-        RETURN "NOK" .
+        AND   docum-est.ce-atual = YES
+        BY    docum-est.nro-docto 
+        :
+        oDocument = NEW JsonObject() .
+        oDocument:ADD("cod_estabel"      , docum-est.cod-estabel) .
+        oDocument:ADD("cod_cli_for"      , docum-est.cod-emitente) .
+        oDocument:ADD("serie"            , docum-est.serie-docto ) .
+        oDocument:ADD("nro_docto"        , docum-est.nro-docto ) .
+        oDocument:ADD("nat_operacao"     , docum-est.nat-operacao ).
+        oDocument:ADD("di"               , docum-est.declaracao-import ).
+        oDocument:ADD("tot_peso"         , docum-est.tot-peso ).
+        oDocument:ADD("valor_mercad"     , docum-est.valor-mercad ).
+        oArray:ADD(oDocument) .
     END.
-
-    ASSIGN iCont = INT(fnApiReadParam(oIn, "sequence")) NO-ERROR .
-    IF iCont <> ? AND iCont > 0 THEN DO:
-        FOR EACH bf-docum-est NO-LOCK
-            WHERE bf-docum-est.declaracao-import = fnApiReadParam(oIn, "di")
-            AND   bf-docum-est.serie-docto = fnApiReadParam(oIn, "serie")
-            AND   bf-docum-est.cod-emitente = INTEGER(fnApiReadParam(oIn, "cod_cli_for"))
-            AND   bf-docum-est.nat-operacao = fnApiReadParam(oIn, "nat_operacao")
-            AND   bf-docum-est.nro-docto > docum-est.nro-docto 
-            :
-            ASSIGN iCont = iCont - 1 .
-            IF iCont <= 0 THEN DO:
-                FIND FIRST docum-est NO-LOCK WHERE ROWID(docum-est) = ROWID(bf-docum-est) .
-                LEAVE .
-            END.
-        END.
-    END.
-
     oOut = fnApiOK() .
-    oOut:ADD("cod_estabel"      , docum-est.cod-estabel) .
-    oOut:ADD("cod_cli_for"      , docum-est.cod-emitente) .
-    oOut:ADD("serie"            , docum-est.serie-docto ) .
-    oOut:ADD("nro_docto"        , docum-est.nro-docto ) .
-    oOut:ADD("nat_operacao"     , docum-est.nat-operacao ).
-    oOut:ADD("di"               , docum-est.declaracao-import ).
+    oOut:ADD("records", oArray) .
     RETURN .
 END PROCEDURE .
 

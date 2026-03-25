@@ -21,6 +21,9 @@ PROCEDURE pi-get:
 
     ASSIGN iMoeda = INT(fnApiReadParam(oIn, "curCode")) NO-ERROR .
     ASSIGN dtCotacao = fnFormatDateYYYYMMDDr(fnApiReadParam(oIn, "curDate")) NO-ERROR .
+    IF dtCotacao = ? THEN DO:
+        ASSIGN dtCotacao = TODAY .
+    END.
 
     IF iMoeda = ? OR dtCotacao = ? THEN DO:
         oOut = fnApiErro("Erro nos parƒmetros informados para a busca") . 
@@ -39,6 +42,7 @@ PROCEDURE pi-get:
 
     ASSIGN deCotacao = cotacao.cotacao[DAY(dtCotacao)] . 
     IF deCotacao = ? THEN ASSIGN deCotacao = 0 .
+    IF dtCotacao > TODAY THEN ASSIGN deCotacao = 0 .
 
     oOut = fnApiOK() .
     oOut:ADD("cur_code"    , iMoeda) .

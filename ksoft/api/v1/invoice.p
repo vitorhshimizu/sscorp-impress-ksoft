@@ -103,15 +103,43 @@ PROCEDURE pi-post-manual-ft4003:
     FIND FIRST natur-oper NO-LOCK
         WHERE natur-oper.nat-operacao = fnApiGetChar(oHeader, "nat_operacao")
         NO-ERROR .
-    IF NOT AVAIL emitente THEN DO:
+    IF NOT AVAIL natur-oper THEN DO:
         oOut = fnApiErro("Natureza de Operaá∆o n∆o encontrada") .
         RETURN .
     END.
-
+    /*
     IF natur-oper.log-oper-triang = YES THEN DO:
         FIND FIRST bf-emitente-tri NO-LOCK
             WHERE bf-emitente-tri.cod-emitente = fnApiGetInt(oHeader, "cod_cli_for_tri")
             NO-ERROR .
+        IF NOT AVAIL bf-emitente-tri THEN DO:
+            /* Puxar do cadastro PD0506 */
+            FOR FIRST info-cli NO-LOCK
+                WHERE info-cli.nome-abrev = emitente.nome-abrev
+                AND   info-cli.situacao = 1 /* Ativo */
+                :
+                FIND FIRST bf-emitente-tri NO-LOCK
+                    WHERE bf-emitente-tri.nome-abrev = info-cli.nome-ab-inf
+                    NO-ERROR .
+            END.
+            IF NOT AVAIL bf-emitente-tri THEN DO:
+                oOut = fnApiErro("Cliente/Fornecedor da Operaá∆o Triangular n∆o encontrado") .
+                RETURN .
+            END.
+        END.
+    END.
+    */
+
+    IF natur-oper.log-oper-triang = YES THEN DO:
+        /* Puxar do cadastro PD0506 */
+        FOR FIRST info-cli NO-LOCK
+            WHERE info-cli.nome-abrev = emitente.nome-abrev
+            AND   info-cli.situacao = 1 /* Ativo */
+            :
+            FIND FIRST bf-emitente-tri NO-LOCK
+                WHERE bf-emitente-tri.nome-abrev = info-cli.nome-ab-inf
+                NO-ERROR .
+        END.
         IF NOT AVAIL bf-emitente-tri THEN DO:
             oOut = fnApiErro("Cliente/Fornecedor da Operaá∆o Triangular n∆o encontrado") .
             RETURN .
@@ -218,17 +246,19 @@ PROCEDURE pi-post-manual-ft4003:
             wt-docto.vl-embalagem           = fnApiGetDecimal(oHeader, "vl_despesas")
             wt-docto.vl-embalagem-inf       = wt-docto.vl-embalagem
             wt-docto.marca-volume           = "IMPRESS DECOR BRASIL"
-            wt-docto.nr-volumes             = STRING(fnApiGetInt(oHeader, "qt_volume"))
+            /* nr-volume solicitado pela Adri deixar em branco */
+            wt-docto.nr-volumes             = "" /* STRING(fnApiGetInt(oHeader, "qt_volume")) */
             wt-docto.nr-proc-exp            = fnApiGetChar(oHeader, "nr_proc_exp")
             wt-docto.observ-nota            = fnApiGetChar(oHeader, "inf_nota")
             wt-docto.cod-rota               = ""
             wt-docto.nome-abrev-tri         = IF AVAIL bf-emitente-tri THEN bf-emitente-tri.nome-abrev ELSE ""
             .
         OVERLAY(wt-docto.char-1,21,5)       = STRING(wt-docto.mo-codigo) . // Moeda Faturamento
-        
+        OVERLAY(wt-docto.char-1,1,12)       = wt-docto.nome-abrev-tri . // p-nome-abrev-tri
+
         CREATE wt-nota-embal . ASSIGN
             wt-nota-embal.seq-wt-docto  = i-seq-wt-docto
-            wt-nota-embal.sigla-emb     = "VOL"
+            wt-nota-embal.sigla-emb     = fnApiGetChar(oHeader, "cod_volume")
             wt-nota-embal.qt-volumes    = fnApiGetInt(oHeader, "qt_volume")
             wt-nota-embal.desc-vol      = fnApiGetChar(oHeader, "cod_volume")
             .
@@ -237,6 +267,12 @@ PROCEDURE pi-post-manual-ft4003:
         END.
         ELSE IF wt-nota-embal.desc-vol MATCHES "*BOBINA*" THEN DO:
             ASSIGN wt-nota-embal.sigla-emb = "BOB" .
+        END.
+        ELSE IF wt-nota-embal.desc-vol MATCHES "*CAIXA*" THEN DO:
+            ASSIGN wt-nota-embal.sigla-emb = "CX" .
+        END.
+        ELSE IF wt-nota-embal.desc-vol MATCHES "*VOLUME*" THEN DO:
+            ASSIGN wt-nota-embal.sigla-emb = "VOL" .
         END.
 
         FOR FIRST loc-entr NO-LOCK
@@ -278,7 +314,6 @@ PROCEDURE pi-post-manual-ft4003:
             END.
 
             ASSIGN de-preco-final = fnApiGetDecimal(oItem, "vl_preliq") .
-            ASSIGN de-preco-final = de-preco-final * fnApiGetDecimal(oItem, "surcharge") .
             //ASSIGN de-preco-final = fnApiGetDecimal(oItem, "final_price") .
 
             RUN pi-aliquota-pis-cofins-icms IN h-cspdapi002 
@@ -314,9 +349,26 @@ PROCEDURE pi-post-manual-ft4003:
                  OUTPUT de-preco-fatur)
                 .
 
-            /* Arredondar 2 casas decimais */
-            ASSIGN de-preco-final = ROUND(de-preco-final, 5) .
-            ASSIGN de-preco-fatur = ROUND(de-preco-fatur, 5) .
+            /* Adicionar Surcharge e arredondar casas decimais */
+            ASSIGN de-preco-final = de-preco-final * fnApiGetDecimal(oItem, "surcharge") .
+            ASSIGN de-preco-fatur = de-preco-fatur * fnApiGetDecimal(oItem, "surcharge") .
+
+            MESSAGE
+                "TAKE KSOFT INVOICE" SKIP
+                "de-preco-final:   " de-preco-final SKIP
+                "de-preco-fatur:   " de-preco-fatur SKIP
+                "de-preco-fatur 2: " ROUND(de-preco-fatur, 2) SKIP
+                "de-preco-fatur 5: " ROUND(de-preco-fatur, 5) SKIP
+                VIEW-AS ALERT-BOX .
+
+            IF emitente.pais = "Brasil" THEN DO:
+                ASSIGN de-preco-final = ROUND(de-preco-final, 2) .
+                ASSIGN de-preco-fatur = ROUND(de-preco-fatur, 2) .
+            END.
+            ELSE DO:
+                ASSIGN de-preco-final = ROUND(de-preco-final, 5) .
+                ASSIGN de-preco-fatur = ROUND(de-preco-fatur, 5) .
+            END.
 
             RUN emptyRowErrors IN h-bodi317sd .
             RUN gravaInfGeraisWtItDocto IN h-bodi317sd

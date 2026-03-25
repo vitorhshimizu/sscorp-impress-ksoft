@@ -20,38 +20,12 @@ DEF TEMP-TABLE tt-item-doc-est NO-UNDO LIKE item-doc-est
     FIELD r-rowid   AS ROWID
     .
 
-DEF TEMP-TABLE tt-total-item NO-UNDO
-    FIELD tot-peso              LIKE docum-est.tot-peso
-    FIELD peso-bruto-tot        LIKE docum-est.peso-bruto-tot
-    FIELD tot-desconto          LIKE docum-est.tot-desconto
-    FIELD despesa-nota          LIKE docum-est.despesa-nota
-    FIELD valor-mercad          LIKE docum-est.valor-mercad
-    FIELD base-ipi              LIKE docum-est.base-ipi
-    FIELD valor-ipi             AS DECIMAL 
-    FIELD base-icm              LIKE docum-est.base-icm
-    FIELD valor-icm             AS DECIMAL 
-    FIELD base-iss              LIKE docum-est.base-iss
-    FIELD valor-iss             AS DECIMAL
-    FIELD base-subs             LIKE docum-est.base-subs
-    FIELD valor-subs            AS DECIMAL
-    FIELD base-icm-complem      AS DECIMAL
-    FIELD icm-complem           LIKE docum-est.icm-complem
-    FIELD fundo-pobreza         AS DECIMAL
-    FIELD ipi-outras            LIKE docum-est.ipi-outras
-    FIELD valor-pis             AS DECIMAL
-    FIELD valor-cofins          AS DECIMAL
-    FIELD total-pis-subst       AS DECIMAL
-    FIELD total-cofins-subs     AS DECIMAL
-    FIELD total-icms-diferim    AS DECIMAL
-    FIELD valor-frete           LIKE docum-est.valor-frete
-    FIELD valor-pedagio         AS DECIMAL
-    FIELD valor-icm-trib        AS DECIMAL
-    FIELD de-tot-valor-calc     LIKE docum-est.tot-valor
-    .
-
 DEF TEMP-TABLE tt-dupli-apagar NO-UNDO LIKE dupli-apagar
     FIELD r-rowid   AS ROWID
     .
+
+{inbo/boin366.i tt2-rat-docum }
+{inbo/boin366.i1 tt-imposto}
 
 FUNCTION fnNowToString RETURNS CHAR
     ()
@@ -144,7 +118,8 @@ PROCEDURE pi-post:
     DEF VAR oItensArray             AS JsonArray NO-UNDO .
     DEF VAR oItem                   AS JsonObject NO-UNDO .
 
-    DEF VAR cDocto  AS CHAR NO-UNDO .
+    DEF VAR cDocto          AS CHAR NO-UNDO .
+    DEF VAR deVlTotalItens  AS DECIMAL NO-UNDO .
 
     ASSIGN oIn = fnApiReadBody(oIn) .
     ASSIGN oHeader = fnApiGetObject(oIn, "header") .
@@ -157,6 +132,14 @@ PROCEDURE pi-post:
         NO-ERROR .
     IF NOT AVAIL emitente THEN DO:
         oOut = fnApiErro("Cliente/Fornecedor n∆o encontrado") .
+        RETURN .
+    END.
+
+    FIND FIRST natur-oper NO-LOCK
+        WHERE natur-oper.nat-operacao = fnApiGetChar(oHeader, "nat_operacao")
+        NO-ERROR .
+    IF NOT AVAIL natur-oper THEN DO:
+        oOut = fnApiErro("Natureza de Operaá∆o n∆o encontrado") .
         RETURN .
     END.
 
@@ -187,6 +170,10 @@ PROCEDURE pi-post:
     DEF VAR h-boin176   AS HANDLE NO-UNDO .
     RUN inbo/boin176.p PERSISTENT SET h-boin176 .
     RUN openQueryStatic IN h-boin176(INPUT "Main") .
+
+    DEF VAR h-boin366   AS HANDLE NO-UNDO .
+    RUN inbo/boin366.p PERSISTENT SET h-boin366 .
+    RUN openQueryStatic IN h-boin366(INPUT "Main") .
 
     oOut = fnApiErro("Erro interno, transaá∆o n∆o finalizada") .
     TRA1:
@@ -230,6 +217,14 @@ PROCEDURE pi-post:
             AND   docum-est.nat-operacao    = tt-docum-est.nat-operacao
             .
 
+        RUN goToKey IN h-boin090
+            (tt-docum-est.serie-docto,
+             tt-docum-est.nro-docto,
+             tt-docum-est.cod-emitente,
+             tt-docum-est.nat-operacao)
+            .
+
+        ASSIGN deVlTotalItens = 0 .
         DO iCont = 1 TO oItensArray:LENGTH
             :
             ASSIGN oItem = oItensArray:GetJsonObject(iCont) .
@@ -242,7 +237,9 @@ PROCEDURE pi-post:
                 UNDO TRA1, LEAVE TRA1.
             END.
 
-            IF fnApiGetChar(oItem, "ref_cod_chave_nfe") <> "" THEN DO:
+            ASSIGN deVlTotalItens = deVlTotalItens + fnApiGetDecimal(oItem, "preco_total") .
+
+            IF natur-oper.nota-rateio = YES THEN DO:
                 FIND FIRST ref-docum-est NO-LOCK
                     WHERE ref-docum-est.cod-chave-aces-nf-eletro = fnApiGetChar(oItem, "ref_cod_chave_nfe")
                     NO-ERROR .
@@ -250,47 +247,113 @@ PROCEDURE pi-post:
                     oOut = fnApiErro("Documento de Rateio Ref n∆o encontrado, Pos:" + STRING(iCont) ) .
                     UNDO TRA1, LEAVE TRA1.
                 END.
-            END.
 
-            EMPTY TEMP-TABLE tt-item-doc-est .
-            CREATE tt-item-doc-est . ASSIGN
-                tt-item-doc-est.serie-docto             = tt-docum-est.serie-docto 
-                tt-item-doc-est.nro-docto               = tt-docum-est.nro-docto   
-                tt-item-doc-est.cod-emitente            = tt-docum-est.cod-emitente
-                tt-item-doc-est.nat-operacao            = tt-docum-est.nat-operacao
-                tt-item-doc-est.sequencia               = iCont * 10
-                tt-item-doc-est.it-codigo               = ITEM.it-codigo
-                tt-item-doc-est.cod-unid-negoc          = ITEM.cod-unid-negoc
-                tt-item-doc-est.quantidade              = fnApiGetDecimal(oItem, "quantidade")
-                tt-item-doc-est.un                      = fnApiGetChar(oItem, "un_for")
-                tt-item-doc-est.preco-unit              = fnApiGetDecimal(oItem, "preco_unit")
-                tt-item-doc-est.preco-total             = fnApiGetDecimal(oItem, "preco_total")
-                tt-item-doc-est.qt-do-forn              = fnApiGetDecimal(oItem, "quantidade_for")
-                tt-item-doc-est.narrativa               = fnApiGetChar(oItem, "narrativa")
-                tt-item-doc-est.ct-codigo               = fnApiGetChar(oItem, "ct_codigo")
-                tt-item-doc-est.sc-codigo               = fnApiGetChar(oItem, "sc_codigo")
-                tt-item-doc-est.peso-bruto-item         = fnApiGetDecimal(oItem, "peso_bruto")
-                tt-item-doc-est.peso-liquido            = fnApiGetDecimal(oItem, "peso_liquido")
-                tt-item-doc-est.peso-liquido-item       = fnApiGetDecimal(oItem, "peso_liquido")
-                tt-item-doc-est.baixa-ce                = NO
-                tt-item-doc-est.cd-trib-ipi             = 1
-                tt-item-doc-est.base-ipi                = fnApiGetDecimal(oItem, "base_ipi")
-                tt-item-doc-est.aliquota-ipi            = fnApiGetDecimal(oItem, "p_ipi")
-                tt-item-doc-est.valor-ipi               = fnApiGetDecimal(oItem, "vl_ipi")
+                EMPTY TEMP-TABLE tt2-rat-docum .
+                CREATE tt2-rat-docum . ASSIGN 
+                    tt2-rat-docum.cod-emitente = docum-est.cod-emitente
+                    tt2-rat-docum.serie-docto  = docum-est.serie-docto
+                    tt2-rat-docum.nro-docto    = docum-est.nro-docto
+                    tt2-rat-docum.nat-operacao = docum-est.nat-operacao
+                    tt2-rat-docum.nf-emitente  = ref-docum-est.cod-emitente
+                    tt2-rat-docum.nf-serie     = ref-docum-est.serie-docto
+                    tt2-rat-docum.nf-nro       = ref-docum-est.nro-docto
+                    tt2-rat-docum.nf-nat-oper  = ref-docum-est.nat-operacao
+                    tt2-rat-docum.dec-1        = fnApiGetDecimal(oItem, "preco_total")
+                    .
+                RUN emptyRowErrors IN h-boin366 .        
+                RUN setRecord IN h-boin366(INPUT TABLE tt2-rat-docum) .
+                RUN createRecord IN h-boin366 .
+                RUN getRowErrors IN h-boin366(OUTPUT TABLE RowErrors) .
+                FIND FIRST RowErrors NO-LOCK WHERE RowErrors.ErrorSubType = "ERROR" NO-ERROR .
+                IF AVAIL RowErrors THEN DO:
+                    oOut = fnApiErro(STRING(RowErrors.ErrorNumber) + " - " + RowErrors.ErrorDescription) .
+                    UNDO TRA1, LEAVE TRA1.
+                END.
+            END.
+            ELSE DO:
+                EMPTY TEMP-TABLE tt-item-doc-est .
+                CREATE tt-item-doc-est . ASSIGN
+                    tt-item-doc-est.serie-docto             = tt-docum-est.serie-docto 
+                    tt-item-doc-est.nro-docto               = tt-docum-est.nro-docto   
+                    tt-item-doc-est.cod-emitente            = tt-docum-est.cod-emitente
+                    tt-item-doc-est.nat-operacao            = tt-docum-est.nat-operacao
+                    tt-item-doc-est.sequencia               = iCont * 10
+                    tt-item-doc-est.it-codigo               = ITEM.it-codigo
+                    tt-item-doc-est.cod-unid-negoc          = ITEM.cod-unid-negoc
+                    tt-item-doc-est.quantidade              = fnApiGetDecimal(oItem, "quantidade")
+                    tt-item-doc-est.un                      = fnApiGetChar(oItem, "un_for")
+                    tt-item-doc-est.preco-unit              = fnApiGetDecimal(oItem, "preco_unit")
+                    tt-item-doc-est.preco-total             = fnApiGetDecimal(oItem, "preco_total")
+                    tt-item-doc-est.qt-do-forn              = fnApiGetDecimal(oItem, "quantidade_for")
+                    tt-item-doc-est.narrativa               = fnApiGetChar(oItem, "narrativa")
+                    tt-item-doc-est.ct-codigo               = fnApiGetChar(oItem, "ct_codigo")
+                    tt-item-doc-est.sc-codigo               = fnApiGetChar(oItem, "sc_codigo")
+                    tt-item-doc-est.peso-bruto-item         = fnApiGetDecimal(oItem, "peso_bruto")
+                    tt-item-doc-est.peso-liquido            = fnApiGetDecimal(oItem, "peso_liquido")
+                    tt-item-doc-est.peso-liquido-item       = fnApiGetDecimal(oItem, "peso_liquido")
+                    tt-item-doc-est.baixa-ce                = NO
+                    tt-item-doc-est.cd-trib-ipi             = 1
+                    tt-item-doc-est.base-ipi                = fnApiGetDecimal(oItem, "base_ipi")
+                    tt-item-doc-est.aliquota-ipi            = fnApiGetDecimal(oItem, "p_ipi")
+                    tt-item-doc-est.valor-ipi               = fnApiGetDecimal(oItem, "vl_ipi")
+                    .
+
+                /* Se no cadastro do item a NCM for vazio puxar do Loader  */
+                IF ITEM.class-fiscal = "" THEN DO:
+                    FOR FIRST dt-it-docum-est NO-LOCK
+                        WHERE dt-it-docum-est.serie-docto = tt-item-doc-est.serie-docto
+                        AND   dt-it-docum-est.nro-docto = tt-item-doc-est.nro-docto
+                        AND   dt-it-docum-est.cod-emitente = tt-item-doc-est.cod-emitente
+                        AND   dt-it-docum-est.sequencia = tt-item-doc-est.sequencia / 10
+                        :
+                        ASSIGN tt-item-doc-est.class-fiscal = dt-it-docum-est.class-fiscal-orig .
+                    END.
+                END.
+                    
+                RUN emptyRowErrors IN h-boin176 .
+                RUN setRecord IN h-boin176(INPUT TABLE tt-item-doc-est) .
+                RUN createRecord IN h-boin176 .
+                RUN getRowErrors IN h-boin176(OUTPUT TABLE RowErrors) .
+                FIND FIRST RowErrors NO-LOCK WHERE RowErrors.ErrorSubType = "ERROR" NO-ERROR .
+                IF AVAIL RowErrors THEN DO:
+                    oOut = fnApiErro(STRING(RowErrors.ErrorNumber) + " - " + RowErrors.ErrorDescription) .
+                    UNDO TRA1, LEAVE TRA1.
+                END.
+            END.
+        END.
+
+        IF natur-oper.nota-rateio = YES THEN DO:
+            EMPTY TEMP-TABLE tt-imposto .
+            CREATE tt-imposto . ASSIGN
+                //tt-imposto.aliquota-ipi    = natur-oper.aliquota-ipi
+                //tt-imposto.cd-trib-ipi     = natur-oper.cd-trib-ipi
+                //tt-imposto.perc-red-ipi    = natur-oper.perc-red-ipi
+                tt-imposto.aliquota-icm    = natur-oper.aliquota-icm
+                tt-imposto.cd-trib-icm     = natur-oper.cd-trib-icm
+                tt-imposto.perc-red-icm    = natur-oper.perc-red-icm
+                tt-imposto.aliquota-pis    = DEC(SUBSTRING(natur-oper.char-1,76,5))
+                tt-imposto.aliquota-cofins = DEC(SUBSTRING(natur-oper.char-1,81,5))
+                tt-imposto.cd-trib-pis     = INT(SUBSTRING(natur-oper.char-1,86,1)) 
+                tt-imposto.cd-trib-cofins  = INT(SUBSTRING(natur-oper.char-1,87,1))
                 .
-            IF ITEM.class-fiscal = "" THEN DO:
-                ASSIGN tt-item-doc-est.class-fiscal = "" .
-            END.
-            IF tt-item-doc-est.ct-codigo = "" AND 
-               tt-docum-est.cod-observa = 1 /* Industria */ 
-            THEN DO:
-                ASSIGN tt-item-doc-est.ct-codigo = "1140602" .
-            END.
-                
-            RUN emptyRowErrors IN h-boin176 .
-            RUN setRecord IN h-boin176(INPUT TABLE tt-item-doc-est) .
-            RUN createRecord IN h-boin176 .
-            RUN getRowErrors IN h-boin176(OUTPUT TABLE RowErrors) .
+
+            RUN setHandleDocumEst IN h-boin366(INPUT h-boin090) .
+            RUN linkToDocumEst IN h-boin366(INPUT h-boin090) .
+            /*
+            RUN assignValueMercad IN h-boin090(INPUT deVlTotalItens) .
+            RUN assignValuePedagio IN h-boin090(INPUT 0) .
+            RUN assignValueColEscrituraPedagio IN h-boin090(INPUT 1) .
+            RUN valueServiceItem IN h-boin090(INPUT "", INPUT 2) .
+            */
+
+            FIND CURRENT docum-est .
+            ASSIGN docum-est.valor-mercad = deVlTotalItens .
+
+            RUN setTTImposto IN h-boin366(INPUT TABLE tt-imposto) .
+            RUN setAliqIBSCbs IN h-boin366(INPUT 0, INPUT 0, INPUT 0) .
+            RUN setDoacao IN h-boin366(INPUT NO) .
+            RUN createRateio in h-boin366 .
+            RUN getRowErrors IN h-boin366(OUTPUT TABLE RowErrors) .
             FIND FIRST RowErrors NO-LOCK WHERE RowErrors.ErrorSubType = "ERROR" NO-ERROR .
             IF AVAIL RowErrors THEN DO:
                 oOut = fnApiErro(STRING(RowErrors.ErrorNumber) + " - " + RowErrors.ErrorDescription) .
@@ -327,6 +390,12 @@ PROCEDURE pi-post:
         RUN destroy IN h-boin176 .
         DELETE PROCEDURE h-boin176 NO-ERROR .
         ASSIGN h-boin176 = ? .
+    END.
+
+    IF VALID-HANDLE(h-boin366) THEN DO:
+        RUN destroy IN h-boin366.
+        DELETE PROCEDURE h-boin366 NO-ERROR .
+        ASSIGN h-boin366 = ? .
     END.
 
     IF l-ok = TRUE THEN DO:
