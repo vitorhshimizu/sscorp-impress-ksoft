@@ -1,0 +1,66 @@
+*******************************************************************************************************
+Criado por .....:amartins
+Criado em ......:16/01/25 - 15:34:30
+Versao Produto .:12.1.2407.8
+Empresa ........:1
+Progress........:Client 12.2 Server 12
+*******************************************************************************************************
+
+Programa                              Versao         Programa Pai                  Data      Hora
+------------------------------------- -------------- ----------------------------- --------- ----------
+MEN/MEN903ZF                          2.00.00.008    btb100aa                      16/01/25  15:34:31
+BTB/BTB906ZA                          2.00.00.010    men903zf                      16/01/25  15:34:31
+UT-TRDFR                              3.00.00.001    men903zf                      16/01/25  15:34:31
+=====================================================================================================
+Bases de Dados conectadas nesta execução:
+
+emsfnd,dtviewer,eai,mgadt,mgcad,mgmov,mgmp,emscad,emsmov,emscustom,emsinc,hcm
+(Database Progress)
+
+=====================================================================================================
+Alias das Bases de Dados conectadas nesta execução (Base x Alias):
+
+dictdb             emsfnd                                                                                              
+mguni              ems2cad                                                                                             
+mgadm              ems2cad                                                                                             
+mgdis              ems2cad                                                                                             
+mgfis              ems2cad                                                                                             
+mgcld              ems2cad                                                                                             
+mgcex              ems2cad                                                                                             
+mgaps              ems2cad                                                                                             
+mginv              ems2cad                                                                                             
+mgind              ems2cad                                                                                             
+mgmfg              ems2cad                                                                                             
+mgmnt              ems2cad                                                                                             
+mgmrp              ems2cad                                                                                             
+mgrac              ems2cad                                                                                             
+mgscm              ems2cad                                                                                             
+mgtmp              ems2cad                                                                                             
+mgfro              ems2cad                                                                                             
+mgdbr              ems2cad                                                                                             
+emsdca             ems2cad                                                                                             
+movadm             ems2mov                                                                                             
+movdis             ems2mov                                                                                             
+movfis             ems2mov                                                                                             
+movind             ems2mov                                                                                             
+movmfg             ems2mov                                                                                             
+movmnt             ems2mov                                                                                             
+wmovdi             ems2mov                                                                                             
+movfro             ems2mov                                                                                             
+movdbr             ems2mov                                                                                             
+emsbas             ems5cad                                                                                             
+emsedi             ems5cad                                                                                             
+emsfin             ems5cad                                                                                             
+emsuni             ems5cad                                                                                             
+emsven             ems5cad                                                                                             
+movfin             ems5mov                                                                                             
+mgesp              emscustom                                                                                           
+ems2custom         emscustom                                                                                           
+emsesp             emscustom                                                                                           
+emscoletor         emscustom                                                                                           
+custom             emscustom                                                                                           
+xmlloader          emscustom                                                                                           
+dthrgst            hcm                                                                                                 
+dthrpmg            hcm                                                                                                 
+dthrpyc            hcm                                                                                                 
+dthrtma            hcm                                                                                                 

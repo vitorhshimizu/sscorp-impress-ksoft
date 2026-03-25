@@ -1,0 +1,65 @@
+------------------------------------------------------------------------------------------------------------------------------------
+IMPRESS DECOR BRASIL LTDA                        Entregas Previstas de 01/01/2023 a 31/12/9999                          Página:    1
+-------------------------------------------------------------------------------------------------------------- 17/09/2024 - 02:24:30
+
+PARÂMETROS
+
+    Moeda: 0 - Real
+
+    Narrativa do Item..: Não
+    Narrativa do Pedido: Não
+    Narrativa da Ordem.: Não
+    Texto Livre do Item: Não -         
+    Somente Pedidos Impressos: Não
+    Somente Pedidos Aprovados: Não
+
+    Despesas Importação: Não
+
+SELEÇÃO
+
+    Estabelecimento:                   |<  >| ZZZZZ
+    Item:                              |<  >| ZZZZZZZZZZZZZZZZ
+    Família:                           |<  >| ZZZZZZZZ
+    Grupo Estoque:    0                |<  >| 99
+    Grupo Fornecedor: 0                |<  >| 99
+    Fornecedor:       0                |<  >| 999999999
+    Comprador:                         |<  >| ZZZZZZZZZZZZ
+    Processo Compra:  0                |<  >| 999999
+    Pedido Compra:    0                |<  >| 99999999
+    Data Entrega:     01/01/2023       |<  >| 31/12/9999
+
+CLASSIFICAÇÃO
+
+    Por Comprador / Data
+
+    Fornecedor Por Código
+
+    Salta de Página a cada Item: Não
+
+IMPRESSÃO
+
+    Destino: Planilha - C:/TOTVS/OEWORK/JALMEIDA/CC0407.XML
+    Usuário: mapereira
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----------------------------------------------------------------------------------------DATASUL - COMPRAS - CC0407RP - V:2.00.00.017
+
