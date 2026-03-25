@@ -1,0 +1,80 @@
+GE;Descrição;Conta
+00;IP INDUSTRIALIZAÇÃO 3º;1.1.5.08.01
+01;Mat. Prima Papéis Nac.;3.2.3.02.01
+02;Mat. Prima Papéis Imp.;3.2.3.02.02
+03;Mat. Prima Tintas Nac.;3.2.3.02.01
+04;Mat. Prima Tintas Imp.;3.2.3.02.02
+05;Mat. Prima Lacas Nac.;3.2.3.02.01
+06;Mat. Prima Lacas Imp.;3.2.3.02.02
+10;Mat. Prima Quimicos Nacionais;3.2.3.02.01
+11;Mat. Prima Quimicos Importados;3.2.3.02.02
+12;MP PAPÉIS NACIONAIS FSC 70%;3.2.3.02.01
+13;MP PAPÉIS IMPORTADOS FSC 70%;3.2.3.02.02
+14;MP PAPÉIS NAC MAD CONTR FSC;3.2.3.02.01
+15;MP PAPÉIS IMP MAD CONTR FSC;3.2.3.02.02
+16;MP PAPÉIS BASE IMPREGNAÇÃO;3.2.3.02.02
+17;Mat.Prima Embalagens;3.2.3.02.01
+18;Amostra Tintas e Lacas;
+19;Amostra Papeis Base;
+20;Embalagens;3.2.3.02.03
+21;IP PRODUTO ACABADO Ñ IMPRESSOS;
+22;PAPEL DECORATIVO DE TERCEIROS;
+23;IP PRODUTO ACABADO IMPRESSOS;
+24;Material de terceiros - outros;
+25;IP PR ACAB Ñ IMPRESSOS FSC CW;
+26;IP PROD ACAB IMPRESSOS FSC CW;
+27;Mercadorias para Revenda;3.2.3.02.04
+28;IP PR ACAB Ñ IMPRESSOS FSC 70%;
+29;IP PROD ACAB IMPRESSOS FSC 70%;
+30;Mat. de Consumo Produção;
+31;Materiais de Segurança;3.2.3.02.03
+32;Materiais Manutenção;3.2.3.02.03
+33;Materiais Limpeza;3.2.3.02.03
+34;Materiais ETE;3.2.3.02.03
+35;Equipamentos Manutenç. - capex;1.2.3.03.08
+36;Servicos;
+37;Material Intemeriario;3.2.3.02.01
+38;Revenda - aditivos;3.2.3.02.04
+40;Materiais de Escritório;
+41;Materiais de Informática;
+50;Prod. Int. Tintas;
+51;Prod. Int. Lacas;
+52;Prod. Int. Concentrados;
+53;Prod. Int. Cat. e Aditivos;
+54;Prod. Int. Solvente Tintas;
+55;Prod. Int. Solvente Lacas;
+60;CILINDROS;
+61;ATIVO IMOBILIZADO;1.2.3.03.08
+62;DISPONIVEL USO;
+63;ITECH MADEIRA CONTROLADA;
+64;FF MADEIRA CONTROLADA;
+65;DISPONIVEL USO;
+66;PAPEL DECOR MADEIRA CONTROLADA;
+67;ITECH FSC MISTO;
+68;FF FSC MISTO;
+69;PAPEL DECOR FSC MISTO;
+70;PRODUTO ACABADO - TINTAS;
+71;SEMI  ACABADO - TINTAS;
+72;MP QUÍMICOS TINTA;3.2.3.02.02
+73;MP QUÍMICOS IMPREGNAÇÃO;3.2.3.02.02
+74;MATERIAIS AUXILIARES - TINTAS;3.2.3.02.02
+75;EMBALAGEM;3.2.3.02.03
+76;LOTE PILOTO - TINTAS;
+77;AMOSTRAS LAB. P&D - TINTAS;
+79;DEBITO DIRETO - TINTAS;
+80;Prod. Acabado B  Finish Foils;
+81;Produto Acabado  B  LPL;
+82;Produto Acabado B  HPL;
+83;Produto Acabado  B  CPL;
+84;Produto Acabado  B  Acessórios;
+89;Finish Foil I-TECH;
+90;Produto Acabado Finish Foils;
+91;Produto Acabado LPL;
+92;Produto Acabado HPL;
+93;Produto Acabado CPL;
+94;Produto Acabado Acessórios;
+95;Prod. Acab. Industr. Terceiros;
+96;Produto Acabado Filme;
+97;Produto Acabado HPL-OL;
+98;Desenvolvimento de Produto;
+99;DÉBITO DIRETO;
