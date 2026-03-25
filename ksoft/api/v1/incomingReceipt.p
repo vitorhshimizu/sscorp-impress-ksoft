@@ -31,12 +31,10 @@ PROCEDURE pi-find-doc-id:
     ELSE IF p-docType = "CT-e" THEN DO:
         ASSIGN iTpDoc = 2 .
     END.
-    /* Removido NFS-e conforme solicitacao do Fiscal (Daniel e Adriana) */
-    /*
     ELSE IF p-docType = "NFS-e" THEN DO:
         ASSIGN iTpDoc = 4 .
     END.
-    */
+
     IF p-docType = "NFS-e" THEN DO:
         FIND FIRST dt-docum-est NO-LOCK
             WHERE dt-docum-est.serie-docto  = ENTRY(1,p-docKey,",")
@@ -190,8 +188,8 @@ PROCEDURE pi-get:
         WHERE dt-docum-est.dt-emissao >= dtEmissaoIni
         AND   dt-docum-est.dt-emissao <= dtEmissaoFim
         AND   (dt-docum-est.tipo-documento = 1 /* NF-e */ OR
-               dt-docum-est.tipo-documento = 2 /* CT-e */ /*OR
-               dt-docum-est.tipo-documento = 4 /* NFS-e */ */  )
+               dt-docum-est.tipo-documento = 2 /* CT-e */ OR
+               dt-docum-est.tipo-documento = 4 /* NFS-e */  )
         AND   dt-docum-est.log-situacao = NO
         AND   dt-docum-est.log-cancelado = NO
         BY dt-docum-est.dt-emissao
@@ -218,8 +216,6 @@ PROCEDURE pi-populate-document
     :
     DEF OUTPUT PARAM p-doc  AS JsonObject NO-UNDO .
 
-    DEF BUFFER bf-emitente  FOR emitente .
-
     DEF VAR cTpDoc      AS CHAR NO-UNDO .
 
     IF dt-docum-est.tipo-documento = 1 THEN DO:
@@ -235,22 +231,16 @@ PROCEDURE pi-populate-document
         ASSIGN cTpDoc = "Outras" .
     END.
 
-    /* Troca o codigo do fornecedor pelo mais recente */
-    FIND LAST bf-emitente NO-LOCK
-        WHERE bf-emitente.cgc = emitente.cgc
-        .
-    
-    /**/
     p-doc = NEW JsonObject() .
     p-doc:ADD("doc_type"                , cTpDoc) .
     p-doc:ADD("doc_key"                 , dt-docum-est.chave-xml) .
     p-doc:ADD("dt_emissao"              , dt-docum-est.dt-emissao) .
     p-doc:ADD("serie"                   , dt-docum-est.serie-docto) .
     p-doc:ADD("nro_docto"               , dt-docum-est.nro-docto) .
-    p-doc:ADD("emitente_codigo"         , bf-emitente.cod-emitente) .
-    p-doc:ADD("emitente_cnpj"           , bf-emitente.cgc) .
-    p-doc:ADD("emitente_nome_emit"      , bf-emitente.nome-emit) .
-    p-doc:ADD("emitente_nome_abrev"     , bf-emitente.nome-abrev) .
+    p-doc:ADD("emitente_codigo"         , dt-docum-est.cod-emitente) .
+    p-doc:ADD("emitente_cnpj"           , emitente.cgc) .
+    p-doc:ADD("emitente_nome_emit"      , emitente.nome-emit) .
+    p-doc:ADD("emitente_nome_abrev"     , emitente.nome-abrev) .
     p-doc:ADD("dest_codigo"             , dt-docum-est.cod-estabel) .
     p-doc:ADD("dest_cnpj"               , estabelec.cgc) .
     p-doc:ADD("dest_nome"               , estabelec.nome) .
