@@ -1,0 +1,44 @@
+{
+	"itens": [
+		{
+			"it_codigo": "FW000239",
+			"desc_item": "SUB CONJUNTO UNIVERSAL 220V",
+			"un": "UN",
+			"qtd_item": 1.0000,
+			"components": [
+				{
+					"es_codigo": "FW000208",
+					"desc_comp": "CONJ MOTO 70BAR 220V 60HZ",
+					"un_comp": "UN",
+					"qtd_comp": 1.0000
+				},
+				{
+					"es_codigo": "FW000202",
+					"desc_comp": "SEPARADOR DE AMBIENTE",
+					"un_comp": "UN",
+					"qtd_comp": 4.0000
+				}
+			]
+		},
+		{
+			"it_codigo": "FW000253",
+			"desc_item": "CABO 4X4 20M 220V CPL L-2600",
+			"un": "UN",
+			"qtd_item": 1.0000,
+			"components": [
+				{
+					"es_codigo": "7008157",
+					"desc_comp": "CABO PP 4x4MM",
+					"un_comp": "M",
+					"qtd_comp": 20.0000
+				},
+				{
+					"es_codigo": "44061018",
+					"desc_comp": "PLUG 4P 32A AZ",
+					"un_comp": "UN",
+					"qtd_comp": 1.0000
+				}
+			]
+		}
+	]
+}
